@@ -932,10 +932,6 @@ var shelve = {
             template = shelveStore.get(i, 'dir', null);
             // shelveUtils.debug('shelve.getSavePageParams template=', template);
             if (template && template.match(/\S/)) {
-                if (template.match(/[*|<>&?"]/)) {
-                    alert(shelveUtils.localized('malformed_template') + ': ' + template);
-                    template = shelve.cleanValue(template);
-                }
                 if (shelve.matchRx(i, url)) {
                     // var autoselect = shelveStore.get(i, 'autoselect', null);
                     // if (!autoselect) {
@@ -2014,8 +2010,8 @@ var shelve = {
         file = String(file);
         if (shelveUtils.getOS() == 'WINNT') {
             file = file.replace(/\//g, '\\');
-            file = file.replace(/[<>:"/|?*]/g, '_');
         }
+        file = shelveUtils.cleanPath(file);
         // shelveUtils.debug('shelve getDocumentFilename: [file, filenametype, is_not_last]=', [file, filenametype, is_not_last]);
         return file;
     },
