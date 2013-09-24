@@ -1509,8 +1509,18 @@ var shelve = {
             val = shelve.getDocumentFilename(et_params, 2, is_not_last);
             break;
 
+            case 'filenamei':
+            val = shelve.getDocumentFilename(et_params, 2, false);
+            rawmode = true;
+            break;
+
             case 'basename':
             val = shelve.getDocumentFilename(et_params, 1, is_not_last);
+            break;
+
+            case 'basenamei':
+            val = shelve.getDocumentFilename(et_params, 1, false);
+            rawmode = true;
             break;
 
             case 'host':
@@ -1556,9 +1566,19 @@ var shelve = {
             val = shelve.getDocumentFilename(et_params, 3, is_not_last);
             break;
 
+            case 'fullpathi':
+            rawmode = true;
+            val = shelve.getDocumentFilename(et_params, 3, false);
+            break;
+
             case 'path':
             rawmode = true;
             val = shelve.getDocumentFilename(et_params, 4, is_not_last);
+            break;
+
+            case 'pathi':
+            rawmode = true;
+            val = shelve.getDocumentFilename(et_params, 4, false);
             break;
 
             case 'query':
