@@ -199,11 +199,38 @@ var shelveUtils = {
         var max = shelveStore.max();
         var shelfIndex = -1;
         var shelfSearch = true;
+
+        var preferences = window.document.getElementsByTagName('preferences')[0];
+        var richlistitemtmpl = window.document.getElementById('shelveListItemTemplate');
+
         for (var shelfId = 1; shelfId <= max; shelfId++) {
             var template = shelveStore.get(shelfId, 'dir', null);
             // shelveUtils.debug("shelveUtils.fillListbox ", shelfId +" "+ template);
             if (template && template.match(/\S/)) {
-                listbox.appendItem(shelveStore.getDescription(shelfId), shelfId);
+                // Deep copy our template richlistitem
+                var richlistitem = richlistitemtmpl.cloneNode(true);
+                richlistitem.setAttribute('id', 'shelveListItem'+shelfId);
+                richlistitem.setAttribute('value', shelfId);
+                richlistitem.setAttribute('hidden', false);
+
+                // Setup the mapping to the preference backend
+                var prefid = 'shelf_enabled'+shelfId;
+                var preference = window.document.createElement('preference');
+                preference.setAttribute('id', 'shelf_enabled'+shelfId);
+                preference.setAttribute('name', 'extensions.shelve.enabled'+shelfId);
+                preference.setAttribute('type', 'bool');
+                preferences.appendChild(preference);
+
+                // Setup the enabled checkbox and glue it to the prefs backend
+                var activeCBox = richlistitem.getElementsByTagName('checkbox')[0];
+                activeCBox.setAttribute('checked', shelveStore.getBool(shelfId, 'enabled'));
+                activeCBox.setAttribute('preference', prefid);
+
+                var labelCell = richlistitem.getElementsByClassName('shelveName')[0];
+                labelCell.setAttribute('label', shelveStore.getDescription(shelfId));
+
+                listbox.appendChild(richlistitem);
+
                 if (shelfSearch) {
                     shelfIndex++;
                     if (shelfId == selectedShelfIdNr) {
@@ -212,6 +239,7 @@ var shelveUtils = {
                 }
             }
         }
+
         // shelveUtils.debug("shelveUtils.fillListbox shelfIndex=", shelfIndex);
         shelveUtils.selectListboxItem(listbox, shelfIndex);
     },

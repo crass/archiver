@@ -57,6 +57,13 @@
     <script src="shelve.js"/>
     <script src="shelveOptions.js"/>
 
+    <richlistitem id="shelveListItemTemplate" hidden="true">
+        <listcell class="shelveActivate">
+            <checkbox checked="false" tooltiptext="enabled?"/>
+        </listcell>
+        <listcell class="shelveName"/>
+    </richlistitem>
+
     <prefpane id="pane1" label="&pane1.title;">
         <preferences>
             <preference id="mime" name="extensions.shelve.mime" type="unichar"/>
@@ -93,11 +100,11 @@
                 <tabpanel id="shelves" orient="vertical">
 
                     <label accesskey="&shelve.shelves.accesskey1;" control="theShelves">&shelve.shelves;</label>
-                    <hbox>
-                        <listbox id="theShelves" width="450"
+                    <hbox flex="1">
+                        <richlistbox id="theShelves" width="450"
                                  ondblclick="shelveOptions.onDblClick()"
                                  flex="1">
-                        </listbox>
+                        </richlistbox>
                         <vbox pack="center">
                             <button accesskey="&shelve.up.accesskey;" 
                                     label="&shelve.up;"
