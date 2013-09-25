@@ -53,6 +53,7 @@ var shelveStore = {
         'log_template': '',
         'footer_text': '',
         'footer_html': '',
+        'enabled': true,
         'auto': false,
         'autoselect': false,
         'noautosave': false,

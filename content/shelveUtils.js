@@ -192,18 +192,23 @@ var shelveUtils = {
         }
     },
 
-    fillListbox: function(listbox, selectedShelfId) {
+    fillListbox: function(listbox, selectedShelfId, createListItemCb) {
         // shelveUtils.debug("shelveUtils.fillListbox selectedShelfId=", selectedShelfId);
         shelveUtils.emptyListbox(listbox);
         var selectedShelfIdNr = parseInt(selectedShelfId, 10);
         var max = shelveStore.max();
         var shelfIndex = -1;
         var shelfSearch = true;
+
         for (var shelfId = 1; shelfId <= max; shelfId++) {
             var template = shelveStore.get(shelfId, 'dir', null);
             // shelveUtils.debug("shelveUtils.fillListbox ", shelfId +" "+ template);
             if (template && template.match(/\S/)) {
-                listbox.appendItem(shelveStore.getDescription(shelfId), shelfId);
+                if (createListItemCb)
+                    createListItemCb(listbox, shelfId);
+                else
+                    listbox.appendItem(shelveStore.getDescription(shelfId), shelfId);
+
                 if (shelfSearch) {
                     shelfIndex++;
                     if (shelfId == selectedShelfIdNr) {
@@ -212,6 +217,7 @@ var shelveUtils = {
                 }
             }
         }
+
         // shelveUtils.debug("shelveUtils.fillListbox shelfIndex=", shelfIndex);
         shelveUtils.selectListboxItem(listbox, shelfIndex);
     },
@@ -241,7 +247,7 @@ var shelveUtils = {
         }
     },
 
-    createNewShelf: function(listbox) {
+    createNewShelf: function(listbox, createListItemCb) {
         var newIndex = shelveStore.newIndex();
         var ed_params = {
             inn: {
@@ -253,14 +259,21 @@ var shelveUtils = {
         '', 'chrome, dialog, modal, resizable=yes', ed_params).focus();
         listbox.focus();
         if (ed_params.out && ed_params.out.ok) {
-            shelveUtils.fillListbox(listbox, newIndex);
+            shelveStore.set(newIndex, 'enabled', shelveStore.data.PREF_BOOL, true);
+            // If we don't get a callback, make the default add a (plain)
+            // listitem only if the shelf is enabled
+            createListItemCb = createListItemCb || function (listbox, shelfId) {
+                if (shelveStore.get(shelfId, 'enabled', null))
+                    listbox.appendItem(shelveStore.getDescription(shelfId), shelfId);
+            };
+            shelveUtils.fillListbox(listbox, newIndex, createListItemCb);
             return true;
         } else {
             return false;
         }
     },
 
-    cloneSelected: function(listbox) {
+    cloneSelected: function(listbox, createListItemCb) {
         var selectedIndex = listbox.selectedIndex;
         // shelveUtils.debug("shelveUtils.cloneSelected selectedIndex=", selectedIndex);
         if (selectedIndex >= 0) {
@@ -283,7 +296,13 @@ var shelveUtils = {
             '', 'chrome, dialog, modal, resizable=yes', ed_params).focus();
             listbox.focus();
             if (ed_params.out && ed_params.out.ok) {
-                shelveUtils.fillListbox(listbox, thatShelfId);
+                // If we don't get a callback, make the default add a (plain)
+                // listitem only if the shelf is enabled
+                createListItemCb = createListItemCb || function (listbox, shelfId) {
+                    if (shelveStore.get(shelfId, 'enabled', null))
+                        listbox.appendItem(shelveStore.getDescription(shelfId), shelfId);
+                };
+                shelveUtils.fillListbox(listbox, thatShelfId, createListItemCb);
                 return true;
             } else {
                 shelveStore.remove(thatShelfId);
