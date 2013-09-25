@@ -1450,6 +1450,7 @@ var shelve = {
     expandVarNames: {
         'c': 'clip',
         'C': 'Clip',
+        'd': 'dirname',
         'D': 'date',
         'e': 'ext',
         'E': 'ext',
@@ -1537,8 +1538,18 @@ var shelve = {
             val = shelve.getDocumentFilename(et_params, 2, is_not_last);
             break;
 
+            case 'filenamei':
+            val = shelve.getDocumentFilename(et_params, 2, false);
+            rawmode = true;
+            break;
+
             case 'basename':
             val = shelve.getDocumentFilename(et_params, 1, is_not_last);
+            break;
+
+            case 'basenamei':
+            val = shelve.getDocumentFilename(et_params, 1, false);
+            rawmode = true;
             break;
 
             case 'host':
@@ -1579,9 +1590,36 @@ var shelve = {
             val = shelve.lpadString(new Date().getMonth() + 1, '00');
             break;
 
+            case 'dirname':
+            rawmode = true;
+            val = shelve.getDocumentFilename(et_params, 5, true);
+            break;
+
+            // Shorten directory components that are too long, while keeping them unique
+            case 'dirnameshorten':
+            rawmode = true;
+            val = shelve.getDocumentFilename(et_params, 5, true);
+            var dirsep = shelveUtils.filenameSeparator();
+            var dircomps = val.split(dirsep);
+            var dirdepth = dircomps.length;
+            for (var i=0; i < dirdepth; i++) {
+                var d = dircomps[i];
+                if (d.length > shelveUtils.MAXNAMELEN) {
+                    var h = '_' + shelveUtils.hashstring(d, true).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+                    dircomps[i] = d.substring(0, shelveUtils.MAXNAMELEN - h.length) + h;
+                }
+            }
+            val = dircomps.join(dirsep);
+            break;
+
             case 'fullpath':
             rawmode = true;
             val = shelve.getDocumentFilename(et_params, 3, is_not_last);
+            break;
+
+            case 'fullpathi':
+            rawmode = true;
+            val = shelve.getDocumentFilename(et_params, 3, false);
             break;
 
             case 'path':
@@ -1589,8 +1627,31 @@ var shelve = {
             val = shelve.getDocumentFilename(et_params, 4, is_not_last);
             break;
 
+            case 'pathi':
+            rawmode = true;
+            val = shelve.getDocumentFilename(et_params, 4, false);
+            break;
+
             case 'query':
             val = shelve.getDocumentUrlQuery(et_params);
+            break;
+
+            case 'queryq':
+            rawmode = true;
+            val = shelve.getDocumentUrlQuery(et_params);
+            val = val ? '?' + val : val;
+            break;
+
+            case 'queryhash':
+            val = shelve.getDocumentUrlQuery(et_params);
+            val = (val) ? shelveUtils.hashstring(val, true).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '') : val;
+            break;
+
+            case 'queryhashq':
+            rawmode = true;
+            val = shelve.getDocumentUrlQuery(et_params);
+            val = (val) ? shelveUtils.hashstring(val, true).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '') : val;
+            val = val ? '?' + val : val;
             break;
 
             case 'secs':
@@ -1619,6 +1680,25 @@ var shelve = {
 
             case 'separator':
             val = shelveUtils.filenameSeparator();
+            rawmode = true;
+            break;
+
+            case 'archivefilename':
+            var orig_tmpl = et_params.template;
+            
+            et_params.template = "%{queryhashq}:%e:%{filenamei}";
+            var vars = shelve.expandTemplate(et_params).split(':');
+            var qhash = vars[0], ext = vars[1], fname = vars.slice(2).join(':');
+            
+            val = qhash + ext;
+            if ((fname + val).length > shelveUtils.MAXNAMELEN) {
+                // chop filename to make it fit in MAXNAMELEN with having the qhash
+                // and extension intact.
+                var h = '_' + shelveUtils.hashstring(fname, true).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+                fname = fname.substring(0, shelveUtils.MAXNAMELEN - h.length - val.length) + h;
+            }
+            val = fname + val;
+            et_params.template = orig_tmpl;
             rawmode = true;
             break;
 
@@ -1925,51 +2005,47 @@ var shelve = {
 
     getDocumentFilename: function (et_params, filenametype, is_not_last) {
         var url = shelveUtils.getDocumentURL(et_params);
-        var path = url.replace(/^(\w+:\/\/)?[^\/]*\/?/, '');
-        var tail = path.replace(/^([^\/]*\/)*/, '');
-        var file;
+        // remove protocol and domain at the beginning of the url
+        var url_no_proto = url.replace(/^(\w+:\/\/)?[^\/]*\/?/, '');
+        // remove hash or querystring
+        var path = url_no_proto.replace(/[#?&].*$/, '');
+        var pathcomps = path.split('/');
+        // filename is the last path component
+        var filename = pathcomps.pop();
+        if (filename == "" && !is_not_last)
+            filename = 'index';
+        
+        var fileext_rx = RegExp(/\.[^/.]*$/);
         switch (filenametype) {
             case 1: // basename
-            matches = tail.match(/^[^#?&]*/);
-            file = matches ? matches[0] : '';
-            file = file.replace(/\.[^.]*$/, '');
+            file = filename.replace(fileext_rx, '');
             break;
+            
             case 2: // filename
-            matches = tail.match(/^[^#?&]*/);
-            file = matches ? matches[0] : '';
+            file = filename;
             break;
+            
             case 3: // fullpath
-            file = path.replace(/[#?&].*$/, '');
-            file = file.replace(/[*|<>?:"]/g, '_');
-            if (file.match(/[\/\\]$/)) {
-                if (is_not_last) {
-                    file = file.replace(/[\/\\]$/, '');
-                } else {
-                    file += 'index' + et_params.extension;
-                }
-            }
+            pathcomps.push(filename);
+            file = pathcomps.join('/');
             break;
-            case 4: // path
-            file = shelve.getDocumentFilename(et_params, 3, is_not_last);
-            file = file.replace(/\.\w+$/, '');
+            
+            case 4: // fullpath excluding the extension
+            file = shelve.getDocumentFilename(et_params, 3, is_not_last) + et_params.extension;
+            file = file.replace(fileext_rx, '');
+            break;
+            
+            case 5: // path of only directory components
+            file = pathcomps.join('/');
             break;
         }
         file = String(file);
         if (shelveUtils.getOS() == 'WINNT') {
             file = file.replace(/\//g, '\\');
+            file = file.replace(/[<>:"/|?*]/g, '_');
         }
         // shelveUtils.debug('shelve getDocumentFilename: [file, filenametype, is_not_last]=', [file, filenametype, is_not_last]);
-        if (file.match(/\S/) || is_not_last) {
-            return file;
-        } else {
-            switch (filenametype) {
-                case 1:
-                return 'index';
-                break;
-                default:
-                return 'index' + et_params.extension;
-            }
-        }
+        return file;
     },
 
     getDocumentHost: function (et_params, mode) {
