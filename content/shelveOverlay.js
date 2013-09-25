@@ -126,4 +126,4 @@ var shelveOverlay = {
 
 };
 
-window.addEventListener('load', function(e) { shelveOverlay.onLoad(e); }, false);
+window.addEventListener('load', function(e) { shelveUtils.exceptionWrap(shelveOverlay.onLoad)(e); }, false);

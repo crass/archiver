@@ -161,6 +161,7 @@ var shelveUtils = {
 
     // Determine if document is a document and not a frame
     isTopLevelDoc: function(doc, browser) {
+        browser = browser || gBrowser.getBrowserForDocument(doc);
         if (doc.nodeName != '#document') {
             shelveUtils.debug('shelveUtils.isTopLevelDoc doc not document or is frame: ', doc.location && doc.location.href);
             return false;
