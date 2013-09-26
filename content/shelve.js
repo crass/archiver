@@ -484,9 +484,11 @@ var shelve = {
         var max = shelveStore.max();
         shelveUtils.log("setupAutoSelect: max = "+max);
         for (var i = 1; i <= max; i++) {
+            var enabled = shelveStore.get(i, 'enabled', null);
             var autoselect = shelveStore.get(i, 'autoselect', null);
+            shelveUtils.log("setupAutoSelect: "+i+": enabled = "+enabled);
             shelveUtils.log("setupAutoSelect: "+i+": autoselect = "+autoselect);
-            if (autoselect && !win.shelve.autoselect) {
+            if (enabled && autoselect && !win.shelve.autoselect) {
                 win.shelve.addEventListener(shelve.autoSelectShelve, true);
                 win.shelve.autoselect = true;
                 shelveUtils.debug('setupAutoSelect '+i+': set autoselect=', win.shelve.autoselect);
@@ -802,10 +804,11 @@ var shelve = {
             // shelveUtils.debug('autoSelectShelve match stop_rx=', false);
             var max = shelveStore.max();
             for (var i = 1; i <= max; i++) {
+                var enabled = shelveStore.get(i, 'enabled', null);
                 var autoselect = shelveStore.get(i, 'autoselect', null);
-                // shelveUtils.debug('autoSelectShelve shelfNo=', i);
+                shelveUtils.log('autoSelectShelve shelf '+i+' enabled='+enabled+' autoselect='+autoselect);
                 // shelveUtils.debug('autoSelectShelve autoselect=', autoselect);
-                if (autoselect) {
+                if (enabled && autoselect) {
                     if (shelve.matchRx(i, url)) {
                         // shelveUtils.debug('autoSelectShelve match rx=', true);
                         shelve.withShelfNumber(i, doc_params);
@@ -958,9 +961,10 @@ var shelve = {
         var url = shelveUtils.getDocumentURL(doc_params);
         for (var i = 1; i <= max; i++) {
             // shelveUtils.debug('shelve.getSavePageParams i=', i);
+            var enabled = shelveStore.get(i, 'enabled', false);
             template = shelveStore.get(i, 'dir', null);
             // shelveUtils.debug('shelve.getSavePageParams template=', template);
-            if (template && template.match(/\S/)) {
+            if (enabled && template && template.match(/\S/)) {
                 if (shelve.matchRx(i, url)) {
                     // var autoselect = shelveStore.get(i, 'autoselect', null);
                     // if (!autoselect) {
