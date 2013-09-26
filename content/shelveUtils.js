@@ -192,7 +192,7 @@ var shelveUtils = {
         }
     },
 
-    fillListbox: function(listbox, selectedShelfId) {
+    fillListbox: function(listbox, selectedShelfId, createListItemCb) {
         // shelveUtils.debug("shelveUtils.fillListbox selectedShelfId=", selectedShelfId);
         shelveUtils.emptyListbox(listbox);
         var selectedShelfIdNr = parseInt(selectedShelfId, 10);
@@ -200,36 +200,14 @@ var shelveUtils = {
         var shelfIndex = -1;
         var shelfSearch = true;
 
-        var preferences = window.document.getElementsByTagName('preferences')[0];
-        var richlistitemtmpl = window.document.getElementById('shelveListItemTemplate');
-
         for (var shelfId = 1; shelfId <= max; shelfId++) {
             var template = shelveStore.get(shelfId, 'dir', null);
             // shelveUtils.debug("shelveUtils.fillListbox ", shelfId +" "+ template);
             if (template && template.match(/\S/)) {
-                // Deep copy our template richlistitem
-                var richlistitem = richlistitemtmpl.cloneNode(true);
-                richlistitem.setAttribute('id', 'shelveListItem'+shelfId);
-                richlistitem.setAttribute('value', shelfId);
-                richlistitem.setAttribute('hidden', false);
-
-                // Setup the mapping to the preference backend
-                var prefid = 'shelf_enabled'+shelfId;
-                var preference = window.document.createElement('preference');
-                preference.setAttribute('id', 'shelf_enabled'+shelfId);
-                preference.setAttribute('name', 'extensions.shelve.enabled'+shelfId);
-                preference.setAttribute('type', 'bool');
-                preferences.appendChild(preference);
-
-                // Setup the enabled checkbox and glue it to the prefs backend
-                var activeCBox = richlistitem.getElementsByTagName('checkbox')[0];
-                activeCBox.setAttribute('checked', shelveStore.getBool(shelfId, 'enabled'));
-                activeCBox.setAttribute('preference', prefid);
-
-                var labelCell = richlistitem.getElementsByClassName('shelveName')[0];
-                labelCell.setAttribute('label', shelveStore.getDescription(shelfId));
-
-                listbox.appendChild(richlistitem);
+                if (createListItemCb)
+                    createListItemCb(listbox, shelfId);
+                else
+                    listbox.appendItem(shelveStore.getDescription(shelfId), shelfId);
 
                 if (shelfSearch) {
                     shelfIndex++;
@@ -269,7 +247,7 @@ var shelveUtils = {
         }
     },
 
-    createNewShelf: function(listbox) {
+    createNewShelf: function(listbox, createListItemCb) {
         var newIndex = shelveStore.newIndex();
         var ed_params = {
             inn: {
@@ -281,14 +259,21 @@ var shelveUtils = {
         '', 'chrome, dialog, modal, resizable=yes', ed_params).focus();
         listbox.focus();
         if (ed_params.out && ed_params.out.ok) {
-            shelveUtils.fillListbox(listbox, newIndex);
+            shelveStore.set(newIndex, 'enabled', shelveStore.data.PREF_BOOL, true);
+            // If we don't get a callback, make the default add a (plain)
+            // listitem only if the shelf is enabled
+            createListItemCb = createListItemCb || function (listbox, shelfId) {
+                if (shelveStore.get(shelfId, 'enabled', null))
+                    listbox.appendItem(shelveStore.getDescription(shelfId), shelfId);
+            };
+            shelveUtils.fillListbox(listbox, newIndex, createListItemCb);
             return true;
         } else {
             return false;
         }
     },
 
-    cloneSelected: function(listbox) {
+    cloneSelected: function(listbox, createListItemCb) {
         var selectedIndex = listbox.selectedIndex;
         // shelveUtils.debug("shelveUtils.cloneSelected selectedIndex=", selectedIndex);
         if (selectedIndex >= 0) {
@@ -311,7 +296,13 @@ var shelveUtils = {
             '', 'chrome, dialog, modal, resizable=yes', ed_params).focus();
             listbox.focus();
             if (ed_params.out && ed_params.out.ok) {
-                shelveUtils.fillListbox(listbox, thatShelfId);
+                // If we don't get a callback, make the default add a (plain)
+                // listitem only if the shelf is enabled
+                createListItemCb = createListItemCb || function (listbox, shelfId) {
+                    if (shelveStore.get(shelfId, 'enabled', null))
+                        listbox.appendItem(shelveStore.getDescription(shelfId), shelfId);
+                };
+                shelveUtils.fillListbox(listbox, thatShelfId, createListItemCb);
                 return true;
             } else {
                 shelveStore.remove(thatShelfId);

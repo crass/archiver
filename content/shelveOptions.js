@@ -41,8 +41,13 @@
 /*jsl:import shelve.js*/
 
 var shelveOptions = {
+    _preferences: null,
+    _richlistitemtmpl: null,
     
     onLoad: function() {
+        shelveOptions._preferences = window.document.getElementsByTagName('preferences')[0];
+        shelveOptions._richlistitemtmpl = window.document.getElementById('shelveListItemTemplate');
+
         shelveOptions.fillListbox('1');
         shelveUtils.checkMimeItems(document);
         // var view = document.getElementById('bookmarksTree');
@@ -50,9 +55,36 @@ var shelveOptions = {
         // view.appendController(PlacesController);
     },
 
+    fillListboxCb: function (listbox, shelfId) {
+        // Deep copy our template richlistitem
+        var richlistitem = shelveOptions._richlistitemtmpl.cloneNode(true);
+        richlistitem.setAttribute('id', 'shelveListItem'+shelfId);
+        richlistitem.setAttribute('value', shelfId);
+        richlistitem.setAttribute('hidden', false);
+
+        // Setup the mapping to the preference backend
+        var prefid = 'shelf_enabled'+shelfId;
+        var preference = window.document.createElement('preference');
+        preference.setAttribute('id', 'shelf_enabled'+shelfId);
+        preference.setAttribute('name', 'extensions.shelve.enabled'+shelfId);
+        preference.setAttribute('type', 'bool');
+        shelveOptions._preferences.appendChild(preference);
+
+        // Setup the enabled checkbox and glue it to the prefs backend
+        var activeCBox = richlistitem.getElementsByTagName('checkbox')[0];
+        activeCBox.setAttribute('checked', shelveStore.getBool(shelfId, 'enabled'));
+        activeCBox.setAttribute('preference', prefid);
+
+        var labelCell = richlistitem.getElementsByClassName('shelveName')[0];
+        labelCell.setAttribute('label', shelveStore.getDescription(shelfId));
+
+        listbox.appendChild(richlistitem);
+        return true;
+    },
+
     fillListbox: function(shelfId) {
         var listbox = document.getElementById('theShelves');
-        shelveUtils.fillListbox(listbox, shelfId);
+        shelveUtils.fillListbox(listbox, shelfId, shelveOptions.fillListboxCb);
         shelveOptions.fillAutoShelves();
     },
 
@@ -74,14 +106,14 @@ var shelveOptions = {
 
     create: function() {
         var listbox = document.getElementById('theShelves');
-        if (shelveUtils.createNewShelf(listbox)) {
+        if (shelveUtils.createNewShelf(listbox, shelveOptions.fillListboxCb)) {
             shelveOptions.fillAutoShelves();
         }
     },
 
     clone: function() {
         var listbox = document.getElementById('theShelves');
-        if (shelveUtils.cloneSelected(listbox)) {
+        if (shelveUtils.cloneSelected(listbox, shelveOptions.fillListboxCb)) {
             shelveOptions.fillAutoShelves();
         }
     },
