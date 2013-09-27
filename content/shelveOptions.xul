@@ -45,7 +45,7 @@
 <prefwindow id="shelvePreferences"
             xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
             xmlns:html="http://www.w3.org/1999/xhtml"
-            onload="shelveOptions.onLoad();"
+            onload="shelveUtils.exceptionWrap(shelveOptions.onLoad)();"
             persist="screenX screenY width height"
             title="&prefwindow.title;">
             <!-- width="600" -->
@@ -56,6 +56,13 @@
     <script src="shelveUtils.js"/>
     <script src="shelve.js"/>
     <script src="shelveOptions.js"/>
+
+    <richlistitem id="shelveListItemTemplate" hidden="true">
+        <listcell class="shelveActivate">
+            <checkbox checked="false" tooltiptext="enabled?"/>
+        </listcell>
+        <listcell class="shelveName"/>
+    </richlistitem>
 
     <prefpane id="pane1" label="&pane1.title;">
         <preferences>
@@ -93,11 +100,11 @@
                 <tabpanel id="shelves" orient="vertical">
 
                     <label accesskey="&shelve.shelves.accesskey1;" control="theShelves">&shelve.shelves;</label>
-                    <hbox>
-                        <listbox id="theShelves" width="450"
+                    <hbox flex="1">
+                        <richlistbox id="theShelves" width="450"
                                  ondblclick="shelveOptions.onDblClick()"
                                  flex="1">
-                        </listbox>
+                        </richlistbox>
                         <vbox pack="center">
                             <button accesskey="&shelve.up.accesskey;" 
                                     label="&shelve.up;"
