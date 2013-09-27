@@ -529,15 +529,49 @@ var shelveUtils = {
                 var file = localFile.createInstance(Components.interfaces.nsIFile);
                 // FIXME: initWithPath if path == ""?
                 if (path !== '') {
+                    // Make sure the filesystem can handle this path
+                    path = shelveUtils.cleanPath(path);
                     file.initWithPath(path);
+
+                    // Make sure the filename is less than the max length, while
+                    // saving the file extension
+                    if (file.leafName.length > shelveUtils.MAXNAMELEN) {
+                        let filename = file.leafName;
+                        let fcomps = filename.split('.');
+                        let ext = '';
+                        // extensions shouldn't be longer than 5 chars
+                        if (fcomps[fcomps.length-1].length < 5)
+                            ext = '.' + fcomps.pop();
+                        // shorten accounting for extension to fit in the max size
+                        filename = fcomps.join('.').substring(0, shelveUtils.MAXNAMELEN-ext.length);
+                        file.leafName = filename + ext;
+                    }
                 }
                 return file;
             }
             return null;
         } catch (e) {
             shelveUtils.log('Malformed path: ' + String(path));
+            shelveUtils.log('Malformed path: ' + e);
+            shelveUtils.log('Stack Trace:\n' + e.stack);
         }
         return null;
+    },
+
+    cleanPath: function (path, s) {
+        s = s || '_';
+        
+        // So far only WINNT needs to be cleaned
+        if (shelveUtils.getOS() == "WINNT") {
+            let drive = path.match('^[a-zA-Z]:\\', 1) || '';
+            if (drive != '')
+                path = path.substring(drive.length);
+            
+            // See: http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
+            // Do not replace backslash because its the path component separator
+            path = drive + path.replace(/[<>:"/|?*]/g, s);
+        }
+        return path;
     },
 
     isSomeFilename: function(filename) {
