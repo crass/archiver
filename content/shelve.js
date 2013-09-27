@@ -772,8 +772,7 @@ var shelve = {
         // shelveUtils.debug('autoSelectShelve dclevent.type=', dclevent.type);
         // shelveUtils.debug('autoSelectShelve dclevent.originalTarget=', dclevent.originalTarget);
         // shelveUtils.debug('autoSelectShelve dclevent.originalTarget.url=', dclevent.originalTarget.url);
-        // Note: gBrowser should be available anytime after the 'load' event
-        var doc_params = {browser: gBrowser};
+        var doc_params = {};
         if (dclevent.type == 'DOMContentLoaded') {
             doc_params.doc = dclevent.originalTarget;
             // shelveUtils.debug('shelve.autoShelve DOMContentLoaded doc=', doc_params.doc);
@@ -786,10 +785,13 @@ var shelve = {
             doc_params.doc = shelveUtils.getDocument({});
             // shelveUtils.debug('shelve.autoShelve getDocument() doc=', doc_params.doc);
         }
+        // Note: gBrowser should be available anytime after the 'load' event
+        doc_params.browser = gBrowser.getBrowserForDocument(doc_params.doc);
+        
         // We want to skip frames because they're mostly garbage
         if (shelve.getBoolPref(shelve.getPrefs('auto.'), 'no_frames', false) &&
-            !shelveUtils.isTopLevelDoc(doc_params.doc, gBrowser)) {
-            shelveUtils.debug('shelve.autoShelve doc not top level document: ', doc_params.doc.location && doc_params.doc.location.href);
+            !shelveUtils.isTopLevelDoc(doc_params.doc)) {
+            shelveUtils.debug('shelve.autoSelectShelve doc not top level document: ', doc_params.doc.location && doc_params.doc.location.href);
             return;
         }
         // shelveUtils.debug('autoSelectShelve doc=', doc_params);
